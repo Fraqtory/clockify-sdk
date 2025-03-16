@@ -1,5 +1,5 @@
 [project]
-name = "clockify_sdk"
+name = "clockify-sdk"
 version = "0.1.0"
 description = "Python SDK for Clockify API"
 readme = "README.md"
