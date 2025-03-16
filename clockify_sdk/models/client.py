@@ -1,10 +1,22 @@
+"""
+Client model and manager for Clockify API
+"""
 from typing import Dict, List, Optional
-from ..base.client import ClockifyClient
 
-class ClientManager(ClockifyClient):
-    """Handles client operations in Clockify"""
+from ..base.client import ClockifyBaseClient
+
+
+class ClientManager(ClockifyBaseClient):
+    """Manager for Clockify client operations"""
 
     def __init__(self, api_key: str, workspace_id: str):
+        """
+        Initialize the client manager
+
+        Args:
+            api_key: Clockify API key
+            workspace_id: Workspace ID
+        """
         super().__init__(api_key)
         self.workspace_id = workspace_id
 
@@ -13,79 +25,70 @@ class ClientManager(ClockifyClient):
         Get all clients in the workspace
 
         Returns:
-            List of clients
+            List of client objects
         """
-        endpoint = f"workspaces/{self.workspace_id}/clients"
-        return self._request("GET", endpoint)
+        return self._request("GET", f"workspaces/{self.workspace_id}/clients")
 
     def get_client(self, client_id: str) -> Dict:
         """
         Get a specific client by ID
 
         Args:
-            client_id: ID of the client to retrieve
+            client_id: Client ID
 
         Returns:
-            Client data
+            Client object
         """
-        endpoint = f"workspaces/{self.workspace_id}/clients/{client_id}"
-        return self._request("GET", endpoint)
+        return self._request("GET", f"workspaces/{self.workspace_id}/clients/{client_id}")
 
-    def create_client(self, name: str, address: Optional[str] = None, 
-                     note: Optional[str] = None) -> Dict:
+    def create_client(self, name: str, address: Optional[str] = None) -> Dict:
         """
         Create a new client
 
         Args:
-            name: Name of the client
-            address: Optional address of the client
-            note: Optional note about the client
+            name: Client name
+            address: Optional client address
 
         Returns:
-            Created client data
+            Created client object
         """
         data = {
             "name": name,
+            "address": address
         }
-        if address:
-            data["address"] = address
-        if note:
-            data["note"] = note
+        return self._request(
+            "POST", 
+            f"workspaces/{self.workspace_id}/clients",
+            data={k: v for k, v in data.items() if v is not None}
+        )
 
-        endpoint = f"workspaces/{self.workspace_id}/clients"
-        return self._request("POST", endpoint, data=data)
-
-    def update_client(self, client_id: str, name: Optional[str] = None,
-                     address: Optional[str] = None, note: Optional[str] = None) -> Dict:
+    def update_client(self, client_id: str, name: str, address: Optional[str] = None) -> Dict:
         """
         Update an existing client
 
         Args:
-            client_id: ID of the client to update
-            name: Optional new name for the client
-            address: Optional new address for the client
-            note: Optional new note for the client
+            client_id: Client ID
+            name: New client name
+            address: Optional new client address
 
         Returns:
-            Updated client data
+            Updated client object
         """
-        data = {}
-        if name:
-            data["name"] = name
-        if address:
-            data["address"] = address
-        if note:
-            data["note"] = note
-
-        endpoint = f"workspaces/{self.workspace_id}/clients/{client_id}"
-        return self._request("PUT", endpoint, data=data)
+        data = {
+            "name": name,
+            "address": address
+        }
+        return self._request(
+            "PUT",
+            f"workspaces/{self.workspace_id}/clients/{client_id}",
+            data={k: v for k, v in data.items() if v is not None}
+        )
 
     def delete_client(self, client_id: str) -> None:
         """
         Delete a client
 
         Args:
-            client_id: ID of the client to delete
+            client_id: Client ID to delete
         """
-        endpoint = f"workspaces/{self.workspace_id}/clients/{client_id}"
-        self._request("DELETE", endpoint) 
+        self._request("DELETE", f"workspaces/{self.workspace_id}/clients/{client_id}") 

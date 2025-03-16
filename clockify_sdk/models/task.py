@@ -1,100 +1,124 @@
+"""
+Task model and manager for Clockify API
+"""
 from typing import Dict, List, Optional
-from ..base.client import ClockifyClient
 
-class TaskManager(ClockifyClient):
-    """Handles task operations in Clockify"""
+from ..base.client import ClockifyBaseClient
+
+
+class TaskManager(ClockifyBaseClient):
+    """Manager for Clockify task operations"""
 
     def __init__(self, api_key: str, workspace_id: str):
+        """
+        Initialize the task manager
+
+        Args:
+            api_key: Clockify API key
+            workspace_id: Workspace ID
+        """
         super().__init__(api_key)
         self.workspace_id = workspace_id
 
-    def get_tasks(self, project_id: str, page_size: int = 50) -> List[Dict]:
+    def get_tasks(self, project_id: str) -> List[Dict]:
         """
-        Get all tasks for a project
+        Get all tasks in a project
 
         Args:
-            project_id: ID of the project to get tasks from
-            page_size: Number of tasks to return per page
+            project_id: Project ID
 
         Returns:
-            List of tasks
+            List of task objects
         """
-        params = {"page-size": page_size}
-        endpoint = f"workspaces/{self.workspace_id}/projects/{project_id}/tasks"
-        return self._request("GET", endpoint, params=params)
+        return self._request(
+            "GET",
+            f"workspaces/{self.workspace_id}/projects/{project_id}/tasks"
+        )
 
     def get_task(self, project_id: str, task_id: str) -> Dict:
         """
         Get a specific task by ID
 
         Args:
-            project_id: ID of the project containing the task
-            task_id: ID of the task to retrieve
+            project_id: Project ID
+            task_id: Task ID
 
         Returns:
-            Task data
+            Task object
         """
-        endpoint = f"workspaces/{self.workspace_id}/projects/{project_id}/tasks/{task_id}"
-        return self._request("GET", endpoint)
+        return self._request(
+            "GET",
+            f"workspaces/{self.workspace_id}/projects/{project_id}/tasks/{task_id}"
+        )
 
-    def create_task(self, project_id: str, name: str, assignee_ids: List[str] = None,
-                    estimate: str = None, status: str = "ACTIVE") -> Dict:
+    def create_task(self, project_id: str, name: str) -> Dict:
         """
         Create a new task in a project
 
         Args:
-            project_id: ID of the project to create task in
-            name: Name of the task
-            assignee_ids: Optional list of user IDs to assign to the task
-            estimate: Optional time estimate in format 'PT#H#M' (e.g., 'PT2H30M' for 2.5 hours)
-            status: Task status (ACTIVE or DONE)
+            project_id: Project ID
+            name: Task name
 
         Returns:
-            Created task data
+            Created task object
         """
-        data = {
-            "name": name,
-            "projectId": project_id,
-            "status": status
-        }
+        return self._request(
+            "POST",
+            f"workspaces/{self.workspace_id}/projects/{project_id}/tasks",
+            data={"name": name}
+        )
 
-        if assignee_ids:
-            data["assigneeIds"] = assignee_ids
-        if estimate:
-            data["estimate"] = estimate
+    def bulk_create_tasks(self, project_id: str, tasks: List[Dict]) -> List[Dict]:
+        """
+        Create multiple tasks in a project
 
-        endpoint = f"workspaces/{self.workspace_id}/projects/{project_id}/tasks"
-        return self._request("POST", endpoint, data=data)
+        Args:
+            project_id: Project ID
+            tasks: List of task objects with at least a name field
 
-    def update_task(self, project_id: str, task_id: str, name: Optional[str] = None,
-                    assignee_ids: Optional[List[str]] = None, estimate: Optional[str] = None,
-                    status: Optional[str] = None) -> Dict:
+        Returns:
+            List of created task objects
+        """
+        return self._request(
+            "POST",
+            f"workspaces/{self.workspace_id}/projects/{project_id}/tasks/bulk",
+            data=tasks
+        )
+
+    def update_task(self, project_id: str, task_id: str, name: str) -> Dict:
         """
         Update an existing task
 
         Args:
-            project_id: ID of the project containing the task
-            task_id: ID of the task to update
-            name: Optional new name for the task
-            assignee_ids: Optional list of user IDs to assign to the task
-            estimate: Optional time estimate in format 'PT#H#M'
-            status: Optional task status (ACTIVE or DONE)
+            project_id: Project ID
+            task_id: Task ID
+            name: New task name
 
         Returns:
-            Updated task data
+            Updated task object
         """
-        data = {}
-        if name:
-            data["name"] = name
-        if assignee_ids is not None:  # Allow empty list to remove all assignees
-            data["assigneeIds"] = assignee_ids
-        if estimate:
-            data["estimate"] = estimate
-        if status:
-            data["status"] = status
+        return self._request(
+            "PUT",
+            f"workspaces/{self.workspace_id}/projects/{project_id}/tasks/{task_id}",
+            data={"name": name}
+        )
 
-        endpoint = f"workspaces/{self.workspace_id}/projects/{project_id}/tasks/{task_id}"
-        return self._request("PUT", endpoint, data=data)
+    def mark_task_done(self, project_id: str, task_id: str) -> Dict:
+        """
+        Mark a task as completed
+
+        Args:
+            project_id: Project ID
+            task_id: Task ID
+
+        Returns:
+            Updated task object
+        """
+        return self._request(
+            "PATCH",
+            f"workspaces/{self.workspace_id}/projects/{project_id}/tasks/{task_id}",
+            data={"status": "DONE"}
+        )
 
     def delete_task(self, project_id: str, task_id: str) -> None:
         """
@@ -106,37 +130,6 @@ class TaskManager(ClockifyClient):
         """
         endpoint = f"workspaces/{self.workspace_id}/projects/{project_id}/tasks/{task_id}"
         self._request("DELETE", endpoint)
-
-    def bulk_create_tasks(self, project_id: str, tasks: List[Dict]) -> List[Dict]:
-        """
-        Create multiple tasks in a project at once
-
-        Args:
-            project_id: ID of the project to create tasks in
-            tasks: List of task data dictionaries, each containing:
-                  - name: Task name
-                  - assigneeIds: Optional list of user IDs
-                  - estimate: Optional time estimate
-                  - status: Optional status (ACTIVE or DONE)
-
-        Returns:
-            List of created tasks
-        """
-        endpoint = f"workspaces/{self.workspace_id}/projects/{project_id}/tasks/bulk"
-        return self._request("POST", endpoint, data=tasks)
-
-    def mark_task_done(self, project_id: str, task_id: str) -> Dict:
-        """
-        Mark a task as completed
-
-        Args:
-            project_id: ID of the project containing the task
-            task_id: ID of the task to mark as done
-
-        Returns:
-            Updated task data
-        """
-        return self.update_task(project_id, task_id, status="DONE")
 
     def mark_task_active(self, project_id: str, task_id: str) -> Dict:
         """

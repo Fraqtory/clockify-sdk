@@ -1,41 +1,59 @@
-from typing import Dict, List
+"""
+Report model and manager for Clockify API
+"""
 from datetime import datetime
-from ..base.client import ClockifyClient
-from ..utils.date_utils import format_date
+from typing import Dict, List, Optional
 
-class ReportManager(ClockifyClient):
-    """Handles report generation in Clockify"""
+from ..base.client import ClockifyBaseClient
+from ..utils.date_utils import format_datetime
+
+
+class ReportManager(ClockifyBaseClient):
+    """Manager for Clockify report operations"""
 
     def __init__(self, api_key: str, workspace_id: str):
+        """
+        Initialize the report manager
+
+        Args:
+            api_key: Clockify API key
+            workspace_id: Workspace ID
+        """
         super().__init__(api_key)
         self.workspace_id = workspace_id
 
-    def generate_report(self, start_date: datetime, end_date: datetime,
-                        project_ids: List[str] = None, user_ids: List[str] = None) -> Dict:
+    def generate_report(
+        self,
+        start_date: datetime,
+        end_date: datetime,
+        project_ids: Optional[List[str]] = None
+    ) -> Dict:
         """
-        Generate a time report
+        Generate a detailed report
 
         Args:
-            start_date: Start date for the report
-            end_date: End date for the report
+            start_date: Report start date
+            end_date: Report end date
             project_ids: Optional list of project IDs to filter by
-            user_ids: Optional list of user IDs to filter by
 
         Returns:
-            Report data
+            Report object containing time entries and summary
         """
         data = {
-            "dateRangeStart": format_date(start_date),
-            "dateRangeEnd": format_date(end_date),
-            "summaryFilter": {
-                "groups": ["PROJECT", "USER"]
+            "dateRangeStart": format_datetime(start_date),
+            "dateRangeEnd": format_datetime(end_date),
+            "detailedFilter": {
+                "page": 1,
+                "pageSize": 1000
             }
         }
 
         if project_ids:
-            data["projectIds"] = project_ids
-        if user_ids:
-            data["userIds"] = user_ids
+            data["detailedFilter"]["projectIds"] = project_ids
 
-        endpoint = f"workspaces/{self.workspace_id}/reports/summary"
-        return self._request("POST", endpoint, data=data, is_reports=True) 
+        return self._request(
+            "POST",
+            f"workspaces/{self.workspace_id}/reports/detailed",
+            data=data,
+            is_reports=True
+        ) 

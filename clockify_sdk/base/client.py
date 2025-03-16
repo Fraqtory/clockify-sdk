@@ -1,20 +1,38 @@
-import requests
-from typing import Dict, Any
+"""
+Base client implementation for Clockify API
+"""
+from typing import Any, Dict, Optional
 
-class ClockifyClient:
+import requests
+
+
+class ClockifyBaseClient:
     """Base client for Clockify API interactions"""
     
-    BASE_URL = "https://api.clockify.me/api/v1"
-    REPORTS_URL = "https://reports.api.clockify.me/v1"
+    base_url = "https://api.clockify.me/api/v1"
+    reports_url = "https://reports.api.clockify.me/v1"
 
     def __init__(self, api_key: str):
+        """
+        Initialize the base client
+
+        Args:
+            api_key: Clockify API key
+        """
         self.api_key = api_key
         self.headers = {
             "X-Api-Key": self.api_key,
             "Content-Type": "application/json"
         }
 
-    def _request(self, method: str, endpoint: str, params: Dict = None, data: Dict = None, is_reports: bool = False) -> Any:
+    def _request(
+        self, 
+        method: str, 
+        endpoint: str, 
+        params: Optional[Dict] = None, 
+        data: Optional[Dict] = None, 
+        is_reports: bool = False
+    ) -> Any:
         """
         Make a request to the Clockify API
 
@@ -27,9 +45,13 @@ class ClockifyClient:
 
         Returns:
             Response data as dictionary
+
+        Raises:
+            requests.exceptions.RequestException: If the request fails
         """
-        base = self.REPORTS_URL if is_reports else self.BASE_URL
-        url = f"{base}/{endpoint}"
+        base = self.reports_url if is_reports else self.base_url
+        url = f"{base}/{endpoint.lstrip('/')}"
+        
         response = requests.request(
             method=method,
             url=url,
@@ -37,9 +59,7 @@ class ClockifyClient:
             params=params,
             json=data
         )
-
-        if response.status_code >= 400:
-            raise Exception(f"API Error: {response.status_code} - {response.text}")
+        response.raise_for_status()
 
         if response.text:
             return response.json()

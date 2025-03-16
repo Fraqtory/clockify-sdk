@@ -1,109 +1,113 @@
-from typing import Dict, List, Optional
+"""
+Time entry model and manager for Clockify API
+"""
 from datetime import datetime
-from ..base.client import ClockifyClient
-from ..utils.date_utils import format_date, get_current_utc_time
+from typing import Dict, List, Optional
 
-class TimeEntryManager(ClockifyClient):
-    """Handles time entry operations in Clockify"""
+from ..base.client import ClockifyBaseClient
+from ..utils.date_utils import format_datetime
+
+
+class TimeEntryManager(ClockifyBaseClient):
+    """Manager for Clockify time entry operations"""
 
     def __init__(self, api_key: str, workspace_id: str, user_id: str):
+        """
+        Initialize the time entry manager
+
+        Args:
+            api_key: Clockify API key
+            workspace_id: Workspace ID
+            user_id: User ID
+        """
         super().__init__(api_key)
         self.workspace_id = workspace_id
         self.user_id = user_id
 
-    def get_time_entries(self, start_date: datetime = None, end_date: datetime = None) -> List[Dict]:
+    def get_time_entries(self) -> List[Dict]:
         """
-        Get time entries for the current user
-
-        Args:
-            start_date: Start date for filtering entries
-            end_date: End date for filtering entries
+        Get all time entries for the current user
 
         Returns:
-            List of time entries
+            List of time entry objects
         """
-        params = {}
-        if start_date:
-            params["start"] = format_date(start_date)
-        if end_date:
-            params["end"] = format_date(end_date)
+        return self._request(
+            "GET",
+            f"workspaces/{self.workspace_id}/user/{self.user_id}/time-entries"
+        )
 
-        endpoint = f"workspaces/{self.workspace_id}/user/{self.user_id}/time-entries"
-        return self._request("GET", endpoint, params=params)
-
-    def start_timer(self, description: str, project_id: Optional[str] = None,
-                    task_id: Optional[str] = None, tag_ids: List[str] = None) -> Dict:
+    def start_timer(
+        self,
+        description: str,
+        project_id: Optional[str] = None,
+        task_id: Optional[str] = None
+    ) -> Dict:
         """
         Start a new timer
 
         Args:
-            description: Description of the time entry
-            project_id: Optional project ID to associate with entry
-            task_id: Optional task ID to associate with entry
-            tag_ids: Optional list of tag IDs to associate with entry
+            description: Time entry description
+            project_id: Optional project ID
+            task_id: Optional task ID
 
         Returns:
-            Time entry data
+            Created time entry object
         """
         data = {
-            "start": get_current_utc_time(),
+            "start": format_datetime(datetime.now()),
             "description": description,
-            "billable": "false"
+            "projectId": project_id,
+            "taskId": task_id
         }
-
-        if project_id:
-            data["projectId"] = project_id
-        if task_id:
-            data["taskId"] = task_id
-        if tag_ids:
-            data["tagIds"] = tag_ids
-
-        endpoint = f"workspaces/{self.workspace_id}/time-entries"
-        return self._request("POST", endpoint, data=data)
+        return self._request(
+            "POST",
+            f"workspaces/{self.workspace_id}/time-entries",
+            data={k: v for k, v in data.items() if v is not None}
+        )
 
     def stop_timer(self) -> Dict:
         """
         Stop the current running timer
 
         Returns:
-            Updated time entry data
+            Updated time entry object
         """
-        endpoint = f"workspaces/{self.workspace_id}/user/{self.user_id}/time-entries"
-        data = {
-            "end": get_current_utc_time()
-        }
-        return self._request("PATCH", endpoint, data=data)
+        return self._request(
+            "PATCH",
+            f"workspaces/{self.workspace_id}/user/{self.user_id}/time-entries",
+            data={"end": format_datetime(datetime.now())}
+        )
 
-    def add_time_entry(self, start_time: datetime, end_time: datetime, description: str,
-                       project_id: Optional[str] = None, task_id: Optional[str] = None,
-                       tag_ids: List[str] = None) -> Dict:
+    def add_time_entry(
+        self,
+        start_time: datetime,
+        end_time: datetime,
+        description: str,
+        project_id: Optional[str] = None,
+        task_id: Optional[str] = None
+    ) -> Dict:
         """
         Add a manual time entry
 
         Args:
-            start_time: Start time of the entry
-            end_time: End time of the entry
-            description: Description of what was worked on
-            project_id: Optional project ID to associate with entry
-            task_id: Optional task ID to associate with entry
-            tag_ids: Optional list of tag IDs to associate with entry
+            start_time: Entry start time
+            end_time: Entry end time
+            description: Time entry description
+            project_id: Optional project ID
+            task_id: Optional task ID
 
         Returns:
-            Time entry data
+            Created time entry object
         """
         data = {
-            "start": format_date(start_time),
-            "end": format_date(end_time),
+            "start": format_datetime(start_time),
+            "end": format_datetime(end_time),
             "description": description,
-            "billable": "false"
+            "projectId": project_id,
+            "taskId": task_id
         }
-
-        if project_id:
-            data["projectId"] = project_id
-        if task_id:
-            data["taskId"] = task_id
-        if tag_ids:
-            data["tagIds"] = tag_ids
-
-        endpoint = f"workspaces/{self.workspace_id}/time-entries"
-        return self._request("POST", endpoint, data=data) 
+        return self._request(
+            "POST",
+            f"workspaces/{self.workspace_id}/time-entries",
+            data={k: v for k, v in data.items() if v is not None}
+        ) 

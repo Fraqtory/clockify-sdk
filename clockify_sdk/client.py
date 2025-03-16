@@ -1,30 +1,37 @@
-from typing import Optional
-from .models.user import UserManager
-from .models.time_entry import TimeEntryManager
+"""
+Clockify SDK client implementation
+"""
+from typing import Any, Dict, List, Optional
+
+from .base.client import ClockifyBaseClient
+from .models.client import ClientManager
 from .models.project import ProjectManager
 from .models.report import ReportManager
-from .models.client import ClientManager
 from .models.task import TaskManager
+from .models.time_entry import TimeEntryManager
+from .models.user import UserManager
 
 
-class Clockify:
+class ClockifyClient(ClockifyBaseClient):
     """
-    Master Control Program protocol for Clockify API
-    Provides a standardized interface for interacting with Clockify time tracking service
+    Main client for interacting with the Clockify API.
+    Provides a standardized interface for all Clockify operations.
     """
 
     def __init__(self, api_key: str, workspace_id: Optional[str] = None):
         """
-        Initialize the Clockify MCP with your API key
+        Initialize the Clockify client with your API key
 
         Args:
             api_key: Your Clockify API key
             workspace_id: Optional workspace ID to use
         """
+        super().__init__(api_key)
+        
         # Initialize user manager first to get user and workspace info
         self.user_manager = UserManager(api_key)
         
-        # Use provided workspace_id or the one from user manager
+        # Use provided workspace_id or get from user manager
         self.workspace_id = workspace_id or self.user_manager.workspace_id
         self.user_manager.set_active_workspace(self.workspace_id)
         
@@ -34,6 +41,15 @@ class Clockify:
         self.reports = ReportManager(api_key, self.workspace_id)
         self.clients = ClientManager(api_key, self.workspace_id)
         self.tasks = TaskManager(api_key, self.workspace_id)
+
+    def get_workspaces(self) -> List[Dict[str, Any]]:
+        """
+        Get all workspaces for the authenticated user
+
+        Returns:
+            List of workspace objects
+        """
+        return self._request("GET", "workspaces")
 
     def set_active_workspace(self, workspace_id: str) -> None:
         """

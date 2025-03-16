@@ -1,3 +1,6 @@
+"""
+Date and time utility functions
+"""
 from datetime import datetime, timezone
 
 def format_date(date: datetime) -> str:
@@ -19,4 +22,18 @@ def get_current_utc_time() -> str:
     Returns:
         ISO 8601 formatted UTC time string with Z suffix
     """
-    return format_date(datetime.now(timezone.utc)) 
+    return format_date(datetime.now(timezone.utc))
+
+def format_datetime(dt: datetime) -> str:
+    """
+    Format a datetime object to ISO 8601 format with UTC timezone
+
+    Args:
+        dt: Datetime object to format
+
+    Returns:
+        ISO 8601 formatted string with UTC timezone
+    """
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).isoformat() 
