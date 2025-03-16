@@ -1,7 +1,6 @@
 """Tests for the Clockify SDK."""
 
-from unittest import TestCase
-from unittest import mock
+from unittest import TestCase, mock
 
 from clockify_sdk import ClockifyClient
 
