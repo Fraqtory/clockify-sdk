@@ -1,15 +1,14 @@
-"""
-User model and manager for Clockify API
-"""
-from typing import Dict, List
+"""User management for Clockify API."""
 
-from ..base.client import ClockifyBaseClient
+from typing import Optional
+
+from clockify_sdk.base.client import ClockifyBaseClient, JsonDict, JsonList
 
 
 class UserManager(ClockifyBaseClient):
     """Manager for Clockify user operations"""
 
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str) -> None:
         """
         Initialize the user manager
 
@@ -17,8 +16,8 @@ class UserManager(ClockifyBaseClient):
             api_key: Clockify API key
         """
         super().__init__(api_key)
-        self.user_id = None
-        self.workspace_id = None
+        self.user_id: Optional[str] = None
+        self.workspace_id: Optional[str] = None
         self._initialize_user()
 
     def _initialize_user(self) -> None:
@@ -28,23 +27,25 @@ class UserManager(ClockifyBaseClient):
         workspaces = self.get_workspaces()
         self.workspace_id = workspaces[0]["id"] if workspaces else None
 
-    def get_current_user(self) -> Dict:
+    def get_current_user(self) -> JsonDict:
         """
         Get the current user's information
 
         Returns:
             User object
         """
-        return self._request("GET", "user")
+        response = self._request("GET", "user", response_type=JsonDict)
+        self.user_id = response["id"]
+        return response
 
-    def get_workspaces(self) -> List[Dict]:
+    def get_workspaces(self) -> JsonList:
         """
         Get all workspaces for the current user
 
         Returns:
             List of workspace objects
         """
-        return self._request("GET", "workspaces")
+        return self._request("GET", "workspaces", response_type=JsonList)
 
     def set_active_workspace(self, workspace_id: str) -> None:
         """
@@ -53,4 +54,4 @@ class UserManager(ClockifyBaseClient):
         Args:
             workspace_id: Workspace ID
         """
-        self.workspace_id = workspace_id 
+        self.workspace_id = workspace_id

@@ -1,17 +1,15 @@
-"""
-Report model and manager for Clockify API
-"""
-from datetime import datetime
-from typing import Dict, List, Optional
+"""Report management for Clockify API."""
 
-from ..base.client import ClockifyBaseClient
-from ..utils.date_utils import format_datetime
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from clockify_sdk.base.client import ClockifyBaseClient
 
 
 class ReportManager(ClockifyBaseClient):
     """Manager for Clockify report operations"""
 
-    def __init__(self, api_key: str, workspace_id: str):
+    def __init__(self, api_key: str, workspace_id: str) -> None:
         """
         Initialize the report manager
 
@@ -22,38 +20,55 @@ class ReportManager(ClockifyBaseClient):
         super().__init__(api_key)
         self.workspace_id = workspace_id
 
-    def generate_report(
+    def get_detailed_report(
         self,
         start_date: datetime,
         end_date: datetime,
-        project_ids: Optional[List[str]] = None
-    ) -> Dict:
-        """
-        Generate a detailed report
+        project_ids: Optional[List[str]] = None,
+        user_ids: Optional[List[str]] = None,
+        client_ids: Optional[List[str]] = None,
+        task_ids: Optional[List[str]] = None,
+        tag_ids: Optional[List[str]] = None,
+        include_time_entries: bool = True,
+    ) -> Dict[str, Any]:
+        """Get a detailed report.
 
         Args:
-            start_date: Report start date
-            end_date: Report end date
-            project_ids: Optional list of project IDs to filter by
+            start_date: Start date
+            end_date: End date
+            project_ids: Optional list of project IDs
+            user_ids: Optional list of user IDs
+            client_ids: Optional list of client IDs
+            task_ids: Optional list of task IDs
+            tag_ids: Optional list of tag IDs
+            include_time_entries: Whether to include time entries
 
         Returns:
-            Report object containing time entries and summary
+            Detailed report data
         """
-        data = {
-            "dateRangeStart": format_datetime(start_date),
-            "dateRangeEnd": format_datetime(end_date),
+        data: Dict[str, Any] = {
+            "dateRangeStart": start_date.isoformat() + "Z",
+            "dateRangeEnd": end_date.isoformat() + "Z",
             "detailedFilter": {
                 "page": 1,
-                "pageSize": 1000
-            }
+                "pageSize": 1000,
+                "sortColumn": "DATE",
+            },
+            "exportType": "JSON",
         }
 
         if project_ids:
             data["detailedFilter"]["projectIds"] = project_ids
+        if user_ids:
+            data["detailedFilter"]["userIds"] = user_ids
+        if client_ids:
+            data["detailedFilter"]["clientIds"] = client_ids
+        if task_ids:
+            data["detailedFilter"]["taskIds"] = task_ids
+        if tag_ids:
+            data["detailedFilter"]["tagIds"] = tag_ids
+        if not include_time_entries:
+            data["detailedFilter"]["includeTimeEntries"] = False
 
-        return self._request(
-            "POST",
-            f"workspaces/{self.workspace_id}/reports/detailed",
-            data=data,
-            is_reports=True
-        ) 
+        endpoint = f"workspaces/{self.workspace_id}/reports/detailed"
+        return self._request("POST", endpoint, data=data, is_reports=True)

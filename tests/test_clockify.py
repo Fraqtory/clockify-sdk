@@ -1,8 +1,7 @@
-"""
-Tests for the Clockify SDK
-"""
-import os
-from unittest import TestCase, mock
+"""Tests for the Clockify SDK."""
+
+from unittest import TestCase
+from unittest import mock
 
 from clockify_sdk import ClockifyClient
 
@@ -29,8 +28,8 @@ class TestClockifyClient(TestCase):
             "description": "Test Time Entry",
             "timeInterval": {
                 "start": "2024-03-20T10:00:00Z",
-                "end": "2024-03-20T11:00:00Z"
-            }
+                "end": "2024-03-20T11:00:00Z",
+            },
         }
 
         # Create patcher for requests
@@ -109,7 +108,7 @@ class TestClockifyClient(TestCase):
             url="https://api.clockify.me/api/v1/workspaces",
             headers={"X-Api-Key": self.api_key, "Content-Type": "application/json"},
             params=None,
-            json=None
+            json=None,
         )
 
     def test_get_projects(self):
@@ -128,7 +127,7 @@ class TestClockifyClient(TestCase):
             url=f"https://api.clockify.me/api/v1/workspaces/{self.workspace_id}/projects",
             headers={"X-Api-Key": self.api_key, "Content-Type": "application/json"},
             params=None,
-            json=None
+            json=None,
         )
 
     def test_get_project(self):
@@ -146,7 +145,7 @@ class TestClockifyClient(TestCase):
             url=f"https://api.clockify.me/api/v1/workspaces/{self.workspace_id}/projects/{self.project_id}",
             headers={"X-Api-Key": self.api_key, "Content-Type": "application/json"},
             params=None,
-            json=None
+            json=None,
         )
 
     def test_get_tasks(self):
@@ -165,7 +164,7 @@ class TestClockifyClient(TestCase):
             url=f"https://api.clockify.me/api/v1/workspaces/{self.workspace_id}/projects/{self.project_id}/tasks",
             headers={"X-Api-Key": self.api_key, "Content-Type": "application/json"},
             params=None,
-            json=None
+            json=None,
         )
 
     def test_get_time_entries(self):
@@ -184,18 +183,16 @@ class TestClockifyClient(TestCase):
             url=f"https://api.clockify.me/api/v1/workspaces/{self.workspace_id}/user/{self.user_id}/time-entries",
             headers={"X-Api-Key": self.api_key, "Content-Type": "application/json"},
             params=None,
-            json=None
+            json=None,
         )
 
     def test_start_timer(self):
         """Test starting a timer"""
         description = "Test Timer"
-        
+
         # Make request
         time_entry = self.client.time_entries.start_timer(
-            description=description,
-            project_id=self.project_id,
-            task_id=self.task_id
+            description=description, project_id=self.project_id, task_id=self.task_id
         )
 
         # Verify response
@@ -212,8 +209,8 @@ class TestClockifyClient(TestCase):
                 "start": mock.ANY,  # We can't predict the exact time
                 "description": description,
                 "projectId": self.project_id,
-                "taskId": self.task_id
-            }
+                "taskId": self.task_id,
+            },
         )
 
     def test_stop_timer(self):
@@ -231,5 +228,5 @@ class TestClockifyClient(TestCase):
             url=f"https://api.clockify.me/api/v1/workspaces/{self.workspace_id}/user/{self.user_id}/time-entries",
             headers={"X-Api-Key": self.api_key, "Content-Type": "application/json"},
             params=None,
-            json={"end": mock.ANY}  # We can't predict the exact time
-        ) 
+            json={"end": mock.ANY},  # We can't predict the exact time
+        )

@@ -1,18 +1,24 @@
 """
 Base client implementation for Clockify API
 """
-from typing import Any, Dict, Optional
+
+from typing import Any, Dict, List, Optional, TypeVar, Union, cast
 
 import requests
 
+# Define response types
+JsonDict = Dict[str, Any]
+JsonList = List[JsonDict]
+JsonResponse = Union[JsonDict, JsonList]
+
+# Type variable for generic response types
+T = TypeVar("T")
+
 
 class ClockifyBaseClient:
-    """Base client for Clockify API interactions"""
-    
-    base_url = "https://api.clockify.me/api/v1"
-    reports_url = "https://reports.api.clockify.me/v1"
+    """Base client for Clockify API."""
 
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str) -> None:
         """
         Initialize the base client
 
@@ -20,19 +26,19 @@ class ClockifyBaseClient:
             api_key: Clockify API key
         """
         self.api_key = api_key
-        self.headers = {
-            "X-Api-Key": self.api_key,
-            "Content-Type": "application/json"
-        }
+        self.base_url = "https://api.clockify.me/api/v1"
+        self.reports_url = "https://reports.api.clockify.me/v1"
+        self.headers = {"X-Api-Key": self.api_key, "Content-Type": "application/json"}
 
     def _request(
-        self, 
-        method: str, 
-        endpoint: str, 
-        params: Optional[Dict] = None, 
-        data: Optional[Dict] = None, 
-        is_reports: bool = False
-    ) -> Any:
+        self,
+        method: str,
+        endpoint: str,
+        params: Optional[Dict[str, Any]] = None,
+        data: Optional[Dict[str, Any]] = None,
+        is_reports: bool = False,
+        response_type: type[T] = JsonResponse,  # type: ignore
+    ) -> T:
         """
         Make a request to the Clockify API
 
@@ -42,25 +48,20 @@ class ClockifyBaseClient:
             params: Query parameters
             data: Request body data
             is_reports: Whether to use the reports API endpoint
+            response_type: Expected response type
 
         Returns:
-            Response data as dictionary
+            Response data
 
         Raises:
             requests.exceptions.RequestException: If the request fails
         """
         base = self.reports_url if is_reports else self.base_url
         url = f"{base}/{endpoint.lstrip('/')}"
-        
+
         response = requests.request(
-            method=method,
-            url=url,
-            headers=self.headers,
-            params=params,
-            json=data
+            method=method, url=url, headers=self.headers, params=params, json=data
         )
         response.raise_for_status()
 
-        if response.text:
-            return response.json()
-        return None 
+        return cast(T, response.json())
