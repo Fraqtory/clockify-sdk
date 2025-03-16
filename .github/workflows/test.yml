@@ -26,9 +26,12 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -e ".[dev]"
-    - name: Run tests
+    - name: Run tests with coverage
+      env:
+        CLOCKIFY_API_KEY: ${{ secrets.CLOCKIFY_API_KEY }}
+        CLOCKIFY_WORKSPACE_ID: ${{ secrets.CLOCKIFY_WORKSPACE_ID }}
       run: |
-        pytest --cov=clockify_sdk --cov-report=xml
+        python -m pytest --cov=clockify_sdk --cov-report=xml
     - name: Run type checking
       run: |
         mypy clockify_sdk
@@ -36,4 +39,4 @@ jobs:
       run: |
         ruff check .
         black --check .
-        isort --check . 
+        isort --check .
