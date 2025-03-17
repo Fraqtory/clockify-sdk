@@ -1,178 +1,182 @@
-"""Project management for Clockify API."""
+"""
+Project model for the Clockify SDK
+"""
 
 from typing import Any, Dict, List, Optional
 
-from clockify_sdk.base.client import ClockifyBaseClient, JsonDict, JsonList
+from pydantic import Field
+
+from ..base.client import ApiClientBase
+from .base import ClockifyBaseModel
 
 
-class ProjectManager(ClockifyBaseClient):
-    """Manager for Clockify project operations"""
+class Project(ClockifyBaseModel):
+    """Project model representing a Clockify project."""
 
-    def __init__(self, api_key: str, workspace_id: str) -> None:
-        """
-        Initialize the project manager
+    id: str = Field(..., description="Project ID")
+    name: str = Field(..., description="Project name")
+    workspace_id: str = Field(..., description="Workspace ID")
+    client_id: Optional[str] = Field(None, description="Client ID")
+    is_private: bool = Field(False, description="Whether the project is private")
+    is_archived: bool = Field(False, description="Whether the project is archived")
+    duration: Optional[str] = Field(
+        None, description="Project duration in ISO 8601 format"
+    )
+    color: Optional[str] = Field(None, description="Project color")
+    billable: bool = Field(False, description="Whether the project is billable")
+    template: bool = Field(False, description="Whether the project is a template")
+    note: Optional[str] = Field(None, description="Project note")
+    custom_fields: List[Dict[str, Any]] = Field(
+        default_factory=list, description="Custom fields"
+    )
+
+
+class ProjectManager(ApiClientBase[Dict[str, Any], List[Dict[str, Any]]]):
+    """Manager for project-related operations."""
+
+    def get_all(self, workspace_id: str) -> List[Dict[str, Any]]:
+        """Get all projects in a workspace.
 
         Args:
-            api_key: Clockify API key
-            workspace_id: Workspace ID
-        """
-        super().__init__(api_key)
-        self.workspace_id = workspace_id
-
-    def get_projects(self) -> JsonList:
-        """
-        Get all projects in the workspace
+            workspace_id: ID of the workspace
 
         Returns:
-            List of project objects
+            List of projects
         """
-        endpoint = f"workspaces/{self.workspace_id}/projects"
-        return self._request("GET", endpoint, response_type=JsonList)
+        return self._request(
+            "GET",
+            f"workspaces/{workspace_id}/projects",
+            response_type=List[Dict[str, Any]],
+        )
 
-    def get_project(self, project_id: str) -> JsonDict:
-        """
-        Get a specific project by ID
+    def get_by_id(self, workspace_id: str, project_id: str) -> Dict[str, Any]:
+        """Get a specific project by ID.
 
         Args:
-            project_id: Project ID
+            workspace_id: ID of the workspace
+            project_id: ID of the project
 
         Returns:
-            Project object
+            Project information
         """
-        endpoint = f"workspaces/{self.workspace_id}/projects/{project_id}"
-        return self._request("GET", endpoint, response_type=JsonDict)
+        return self._request(
+            "GET",
+            f"workspaces/{workspace_id}/projects/{project_id}",
+            response_type=Dict[str, Any],
+        )
 
-    def create_project(
-        self,
-        name: str,
-        client_id: Optional[str] = None,
-        color: Optional[str] = None,
-        note: Optional[str] = None,
-        billable: Optional[bool] = None,
-        public: Optional[bool] = None,
-    ) -> JsonDict:
-        """
-        Create a new project
+    def create(self, workspace_id: str, project: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a new project.
 
         Args:
-            name: Project name
-            client_id: Optional client ID to associate with the project
-            color: Optional color hex code
-            note: Optional project note
-            billable: Optional billable flag
-            public: Optional public flag
+            workspace_id: ID of the workspace
+            project: Project data
 
         Returns:
-            Created project object
+            Created project information
         """
-        data: Dict[str, Any] = {"name": name}
-        if client_id:
-            data["clientId"] = client_id
-        if color:
-            data["color"] = color
-        if note:
-            data["note"] = note
-        if billable is not None:
-            data["billable"] = billable
-        if public is not None:
-            data["public"] = public
+        return self._request(
+            "POST",
+            f"workspaces/{workspace_id}/projects",
+            json=project,
+            response_type=Dict[str, Any],
+        )
 
-        endpoint = f"workspaces/{self.workspace_id}/projects"
-        return self._request("POST", endpoint, data=data, response_type=JsonDict)
-
-    def get_tasks(self, project_id: str) -> JsonList:
-        """
-        Get all tasks for a project
+    def update(
+        self, workspace_id: str, project_id: str, project: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Update an existing project.
 
         Args:
-            project_id: Project ID to get tasks for
+            workspace_id: ID of the workspace
+            project_id: ID of the project
+            project: Updated project data
+
+        Returns:
+            Updated project information
+        """
+        return self._request(
+            "PUT",
+            f"workspaces/{workspace_id}/projects/{project_id}",
+            json=project,
+            response_type=Dict[str, Any],
+        )
+
+    def delete(self, workspace_id: str, project_id: str) -> None:
+        """Delete a project.
+
+        Args:
+            workspace_id: ID of the workspace
+            project_id: ID of the project
+        """
+        self._request(
+            "DELETE",
+            f"workspaces/{workspace_id}/projects/{project_id}",
+            response_type=Dict[str, Any],
+        )
+
+    def get_tasks(self, workspace_id: str, project_id: str) -> List[Dict[str, Any]]:
+        """Get all tasks in a project.
+
+        Args:
+            workspace_id: ID of the workspace
+            project_id: ID of the project
 
         Returns:
             List of tasks
         """
-        endpoint = f"workspaces/{self.workspace_id}/projects/{project_id}/tasks"
-        return self._request("GET", endpoint, response_type=JsonList)
+        return self._request(
+            "GET",
+            f"workspaces/{workspace_id}/projects/{project_id}/tasks",
+            response_type=List[Dict[str, Any]],
+        )
 
-    def create_task(
-        self,
-        project_id: str,
-        name: str,
-        assignee_ids: Optional[List[str]] = None,
-    ) -> JsonDict:
-        """
-        Create a new task in a project
+    def get_users(self, workspace_id: str, project_id: str) -> List[Dict[str, Any]]:
+        """Get all users in a project.
 
         Args:
-            project_id: Project ID to create task in
-            name: Task name
-            assignee_ids: Optional list of user IDs to assign to the task
+            workspace_id: ID of the workspace
+            project_id: ID of the project
 
         Returns:
-            Task data
+            List of users
         """
-        data: Dict[str, Any] = {
-            "name": name,
-            "projectId": project_id,
-        }
-        if assignee_ids:
-            data["assigneeIds"] = assignee_ids
+        return self._request(
+            "GET",
+            f"workspaces/{workspace_id}/projects/{project_id}/users",
+            response_type=List[Dict[str, Any]],
+        )
 
-        endpoint = f"workspaces/{self.workspace_id}/projects/{project_id}/tasks"
-        return self._request("POST", endpoint, data=data, response_type=JsonDict)
-
-    def update_project(
-        self,
-        project_id: str,
-        name: Optional[str] = None,
-        client_id: Optional[str] = None,
-        color: Optional[str] = None,
-        note: Optional[str] = None,
-        billable: Optional[bool] = None,
-        public: Optional[bool] = None,
-        archived: Optional[bool] = None,
-    ) -> JsonDict:
-        """Update a project.
+    def add_user(
+        self, workspace_id: str, project_id: str, user_id: str
+    ) -> Dict[str, Any]:
+        """Add a user to a project.
 
         Args:
-            project_id: Project ID
-            name: Optional new project name
-            client_id: Optional client ID
-            color: Optional color hex code
-            note: Optional project note
-            billable: Optional billable flag
-            public: Optional public flag
-            archived: Optional archived flag
+            workspace_id: ID of the workspace
+            project_id: ID of the project
+            user_id: ID of the user
 
         Returns:
-            Updated project
+            Updated project information
         """
-        data: Dict[str, Any] = {}
-        if name:
-            data["name"] = name
-        if client_id:
-            data["clientId"] = client_id
-        if color:
-            data["color"] = color
-        if note:
-            data["note"] = note
-        if billable is not None:
-            data["billable"] = billable
-        if public is not None:
-            data["public"] = public
-        if archived is not None:
-            data["archived"] = archived
+        return self._request(
+            "POST",
+            f"workspaces/{workspace_id}/projects/{project_id}/users",
+            json={"userId": user_id},
+            response_type=Dict[str, Any],
+        )
 
-        endpoint = f"workspaces/{self.workspace_id}/projects/{project_id}"
-        return self._request("PUT", endpoint, data=data, response_type=JsonDict)
-
-    def delete_project(self, project_id: str) -> JsonDict:
-        """Delete a project.
+    def remove_user(self, workspace_id: str, project_id: str, user_id: str) -> None:
+        """Remove a user from a project.
 
         Args:
-            project_id: Project ID
-
-        Returns:
-            Deleted project
+            workspace_id: ID of the workspace
+            project_id: ID of the project
+            user_id: ID of the user
         """
-        endpoint = f"workspaces/{self.workspace_id}/projects/{project_id}"
-        return self._request("DELETE", endpoint, response_type=JsonDict)
+        self._request(
+            "DELETE",
+            f"workspaces/{workspace_id}/projects/{project_id}/users/{user_id}",
+            response_type=Dict[str, Any],
+        )

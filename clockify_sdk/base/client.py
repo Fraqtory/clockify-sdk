@@ -1,67 +1,98 @@
 """
-Base client implementation for Clockify API
+Base client for the Clockify SDK
 """
 
-from typing import Any, Dict, List, Optional, TypeVar, Union, cast
+from typing import (
+    Any,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Type,
+    TypeVar,
+    Union,
+    cast,
+    overload,
+)
 
-import requests
+from ..config import Config
+from ..connection import ConnectionManager
+from ..logging import logger
 
-# Define response types
-JsonDict = Dict[str, Any]
-JsonList = List[JsonDict]
-JsonResponse = Union[JsonDict, JsonList]
-
-# Type variable for generic response types
-T = TypeVar("T")
+SingleResponse = TypeVar("SingleResponse", bound=Dict[str, Any])
+ListResponse = TypeVar("ListResponse", bound=List[Dict[str, Any]])
 
 
-class ClockifyBaseClient:
-    """Base client for Clockify API."""
+class ApiClientBase(Generic[SingleResponse, ListResponse]):
+    """Base class for making requests to the Clockify API.
+    Provides common functionality for API clients."""
 
-    def __init__(self, api_key: str) -> None:
-        """
-        Initialize the base client
+    def __init__(self, connection_manager: ConnectionManager):
+        """Initialize the base client.
 
         Args:
-            api_key: Clockify API key
+            connection_manager: Connection manager for making HTTP requests
         """
-        self.api_key = api_key
-        self.base_url = "https://api.clockify.me/api/v1"
-        self.reports_url = "https://reports.api.clockify.me/v1"
-        self.headers = {"X-Api-Key": self.api_key, "Content-Type": "application/json"}
+        self._connection = connection_manager
+
+    @overload
+    def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: Optional[Dict[str, Any]] = None,
+        params: Optional[Dict[str, Any]] = None,
+        response_type: Type[SingleResponse],
+    ) -> SingleResponse: ...
+
+    @overload
+    def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: Optional[Dict[str, Any]] = None,
+        params: Optional[Dict[str, Any]] = None,
+        response_type: Type[ListResponse],
+    ) -> ListResponse: ...
 
     def _request(
         self,
         method: str,
-        endpoint: str,
+        path: str,
+        *,
+        json: Optional[Dict[str, Any]] = None,
         params: Optional[Dict[str, Any]] = None,
-        data: Optional[Dict[str, Any]] = None,
-        is_reports: bool = False,
-        response_type: type[T] = JsonResponse,  # type: ignore
-    ) -> T:
-        """
-        Make a request to the Clockify API
+        response_type: Union[Type[SingleResponse], Type[ListResponse]],
+    ) -> Union[SingleResponse, ListResponse]:
+        """Make a request to the Clockify API.
 
         Args:
-            method: HTTP method (GET, POST, PUT, DELETE)
-            endpoint: API endpoint
+            method: HTTP method
+            path: API path
+            json: Request body
             params: Query parameters
-            data: Request body data
-            is_reports: Whether to use the reports API endpoint
             response_type: Expected response type
 
         Returns:
-            Response data
+            API response
 
         Raises:
-            requests.exceptions.RequestException: If the request fails
+            ClockifyError: If the API request fails
         """
-        base = self.reports_url if is_reports else self.base_url
-        url = f"{base}/{endpoint.lstrip('/')}"
+        url = f"{Config.BASE_URL}/{path}"
+        try:
+            response = self._connection.request(
+                method=method, url=url, json=json, params=params
+            )
+            if response_type == List[Dict[str, Any]]:
+                return cast("ListResponse", response)
+            return cast("SingleResponse", response)
+        except Exception as e:
+            logger.error(f"API request failed: {e!s}")
+            raise
 
-        response = requests.request(
-            method=method, url=url, headers=self.headers, params=params, json=data
-        )
-        response.raise_for_status()
-
-        return cast(T, response.json())
+    def close(self) -> None:
+        """Close the session"""
+        self._connection.close()

@@ -1,57 +1,82 @@
-"""User management for Clockify API."""
+"""
+User model for the Clockify SDK
+"""
 
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
-from clockify_sdk.base.client import ClockifyBaseClient, JsonDict, JsonList
+from pydantic import Field
+
+from ..base.client import ApiClientBase
+from .base import ClockifyBaseModel
 
 
-class UserManager(ClockifyBaseClient):
-    """Manager for Clockify user operations"""
+class User(ClockifyBaseModel):
+    """User model representing a Clockify user."""
 
-    def __init__(self, api_key: str) -> None:
-        """
-        Initialize the user manager
+    id: str = Field(..., description="User ID")
+    name: str = Field(..., description="User name")
+    email: str = Field(..., description="User email")
+    status: str = Field(..., description="User status")
+    profile_picture: Optional[str] = Field(None, description="Profile picture URL")
+    active_workspace: str = Field(..., description="Active workspace ID")
+    default_workspace: str = Field(..., description="Default workspace ID")
+    settings: Optional[Dict[str, Any]] = Field(None, description="User settings")
+    custom_fields: List[Dict[str, Any]] = Field(
+        default_factory=list, description="Custom fields"
+    )
 
-        Args:
-            api_key: Clockify API key
-        """
-        super().__init__(api_key)
-        self.user_id: Optional[str] = None
-        self.workspace_id: Optional[str] = None
-        self._initialize_user()
 
-    def _initialize_user(self) -> None:
-        """Initialize user and workspace IDs"""
-        user = self.get_current_user()
-        self.user_id = user["id"]
-        workspaces = self.get_workspaces()
-        self.workspace_id = workspaces[0]["id"] if workspaces else None
+class UserManager(ApiClientBase[Dict[str, Any], List[Dict[str, Any]]]):
+    """Manager for user-related operations."""
 
-    def get_current_user(self) -> JsonDict:
-        """
-        Get the current user's information
-
-        Returns:
-            User object
-        """
-        response = self._request("GET", "user", response_type=JsonDict)
-        self.user_id = response["id"]
-        return response
-
-    def get_workspaces(self) -> JsonList:
-        """
-        Get all workspaces for the current user
+    def get_current_user(self) -> Dict[str, Any]:
+        """Get the current user.
 
         Returns:
-            List of workspace objects
+            Current user information
         """
-        return self._request("GET", "workspaces", response_type=JsonList)
+        return self._request("GET", "user", response_type=Dict[str, Any])
 
-    def set_active_workspace(self, workspace_id: str) -> None:
-        """
-        Set the active workspace
+    def get_all(self, workspace_id: str) -> List[Dict[str, Any]]:
+        """Get all users in a workspace.
 
         Args:
-            workspace_id: Workspace ID
+            workspace_id: ID of the workspace
+
+        Returns:
+            List of users in the workspace
         """
-        self.workspace_id = workspace_id
+        return self._request(
+            "GET",
+            f"workspaces/{workspace_id}/users",
+            response_type=List[Dict[str, Any]],
+        )
+
+    def get_by_id(self, workspace_id: str, user_id: str) -> Dict[str, Any]:
+        """Get a specific user by ID.
+
+        Args:
+            workspace_id: ID of the workspace
+            user_id: ID of the user
+
+        Returns:
+            User information
+        """
+        return self._request(
+            "GET",
+            f"workspaces/{workspace_id}/users/{user_id}",
+            response_type=Dict[str, Any],
+        )
+
+    def set_active_workspace(self, workspace_id: str) -> Dict[str, Any]:
+        """Set the active workspace for the current user.
+
+        Args:
+            workspace_id: ID of the workspace
+
+        Returns:
+            Updated user information
+        """
+        return self._request(
+            "PUT", f"users/workspaces/{workspace_id}", response_type=Dict[str, Any]
+        )
