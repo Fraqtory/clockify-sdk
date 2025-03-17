@@ -6,7 +6,6 @@ build-backend = "hatchling.build"
 name = "clockify-sdk"
 description = "A Python SDK for interacting with the Clockify API"
 authors = [{ name = "Fraqtory", email = "fraqtory@gmail.com" }]
-dynamic = ["readme"]
 version = "0.2.0"
 readme = "README.md"
 requires-python = ">=3.8"
