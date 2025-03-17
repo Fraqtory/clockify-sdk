@@ -21,11 +21,12 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "requests>=2.31.0",
     "pydantic>=2.6.0",
     "python-dateutil>=2.8.2",
-    "urllib3>=2.1.0",
+    "requests>=2.31.0",
     "typing-extensions>=4.8.0",
+    "urllib3>=2.1.0",
+    "python-dotenv>=1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -37,8 +38,7 @@ dev = [
     "isort>=5.12.0",
     "ruff>=0.1.3",
     "bandit>=1.7.5",
-    "httpx>=0.25.0",  # For testing HTTP requests
-    "types-requests>=2.31.0.20240311",  # Type stubs for requests
+    "types-requests>=2.31.0.20240311",
 ]
 docs = [
     "sphinx>=7.0.0",
