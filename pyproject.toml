@@ -4,14 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "clockify-sdk"
-version = "0.1.0"
 description = "A Python SDK for interacting with the Clockify API"
+authors = [{ name = "Fraqtory", email = "fraqtory@gmail.com" }]
+dynamic = ["readme"]
+version = "0.2.0"
 readme = "README.md"
 requires-python = ">=3.8"
 license = "MIT"
-authors = [
-    { name = "Fraqtory", email = "team@fraqtory.com" }
-]
 keywords = ["clockify", "api", "sdk", "time tracking"]
 classifiers = [
     "Intended Audience :: Developers",
