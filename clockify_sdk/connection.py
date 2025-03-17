@@ -4,7 +4,9 @@ Connection manager for the Clockify SDK
 
 from typing import Any, Dict, Optional
 
-import httpx
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from clockify_sdk.config import Config
 from clockify_sdk.exceptions import (
@@ -30,72 +32,68 @@ class ConnectionManager:
         self.pool_connections = 10
         self.pool_maxsize = 10
 
-        # Create client with connection pooling and retry strategy
-        self.client = httpx.Client(
-            timeout=self.timeout,
-            limits=httpx.Limits(
-                max_connections=self.pool_connections,
-                max_keepalive_connections=self.pool_maxsize,
-            ),
-            transport=httpx.HTTPTransport(retries=self.max_retries),
+        # Create session with connection pooling and retry strategy
+        self.session = requests.Session()
+        retry_strategy = Retry(
+            total=self.max_retries,
+            backoff_factor=1,
+            status_forcelist=[429, 500, 502, 503, 504],
         )
+        adapter = HTTPAdapter(
+            max_retries=retry_strategy,
+            pool_connections=self.pool_connections,
+            pool_maxsize=self.pool_maxsize,
+        )
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
 
     def request(
         self,
         method: str,
         url: str,
+        *,
         json: Optional[Dict[str, Any]] = None,
         params: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
     ) -> Any:
-        """Make a request to the Clockify API.
+        """Make an HTTP request to the Clockify API.
 
         Args:
             method: HTTP method
-            url: URL to request
-            json: Optional JSON data
-            params: Optional query parameters
-            headers: Optional headers
+            url: Request URL
+            json: Request body
+            params: Query parameters
+            headers: Request headers
 
         Returns:
-            Response data as JSON
+            API response
 
         Raises:
-            AuthenticationError: If authentication fails
-            RateLimitError: If rate limit is exceeded
-            ResourceNotFoundError: If resource is not found
-            APIError: If any other error occurs
+            ClockifyError: If the API request fails
         """
-        if not headers:
-            headers = {}
-        headers["X-Api-Key"] = self.api_key
+        headers = headers or {}
+        headers.update({"X-Api-Key": self.api_key, "Content-Type": "application/json"})
 
-        try:
-            response = self.client.request(
-                method=method,
-                url=url,
-                json=json,
-                params=params,
-                headers=headers,
-            )
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError as e:
-            if e.response.status_code == 401:
-                raise AuthenticationError("Invalid API key") from e
-            if e.response.status_code == 403:
-                raise AuthenticationError("Insufficient permissions") from e
-            if e.response.status_code == 404:
-                raise ResourceNotFoundError(f"Resource not found: {url}") from e
-            if e.response.status_code == 429:
-                retry_after = e.response.headers.get("Retry-After", "60")
-                raise RateLimitError(
-                    f"Rate limit exceeded. Retry after {retry_after} seconds"
-                ) from e
-            raise APIError(f"API request failed: {e!s}") from e
-        except httpx.RequestError as e:
-            raise APIError(f"Request failed: {e!s}") from e
+        response = self.session.request(
+            method=method,
+            url=url,
+            json=json,
+            params=params,
+            headers=headers,
+            timeout=self.timeout,
+        )
+
+        if response.status_code == 401:
+            raise AuthenticationError("Invalid API key")
+        elif response.status_code == 404:
+            raise ResourceNotFoundError("Resource not found")
+        elif response.status_code == 429:
+            raise RateLimitError("Rate limit exceeded")
+        elif not response.ok:
+            raise APIError(f"API request failed: {response.text}")
+
+        return response.json()
 
     def close(self) -> None:
-        """Close the connection manager."""
-        self.client.close()
+        """Close the connection manager and release resources."""
+        self.session.close()

@@ -15,7 +15,7 @@ A Python SDK for interacting with the Clockify API. This SDK provides a simple a
 ## Installation
 
 ```bash
-pip install clockify-sdk python-dotenv
+pip install clockify-sdk
 ```
 
 ## Quick Start
