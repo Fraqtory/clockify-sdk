@@ -1,5 +1,6 @@
 """Test cases for the Clockify SDK"""
 
+from datetime import datetime, timedelta
 from unittest import TestCase, mock
 
 from clockify_sdk import Clockify
@@ -98,32 +99,40 @@ class TestClockify(TestCase):
     def test_get_projects(self):
         """Test getting projects"""
         client = Clockify(self.api_key)
-        projects = client.get_projects()
+        projects = client.projects.get_all()
         self.assertEqual(projects, [self.mock_project])
 
     def test_get_project(self):
         """Test getting a project"""
         client = Clockify(self.api_key)
-        project = client.get_project(self.project_id)
+        project = client.projects.get_by_id(self.project_id)
         self.assertEqual(project, self.mock_project)
 
     def test_get_tasks(self):
         """Test getting tasks"""
         client = Clockify(self.api_key)
-        tasks = client.get_tasks(project_id=self.project_id)
+        tasks = client.tasks.get_all(project_id=self.project_id)
         self.assertEqual(tasks, [self.mock_task])
 
     def test_get_time_entries(self):
         """Test getting time entries"""
         client = Clockify(self.api_key)
-        time_entries = client.get_time_entries()
+        time_entries = client.time_entries.get_by_user_id(user_id=self.user_id)
         self.assertEqual(time_entries, [self.mock_time_entry])
 
     def test_start_timer(self):
         """Test starting a timer"""
         client = Clockify(self.api_key)
         client.time_entries.workspace_id = self.workspace_id
-        time_entry = client.start_timer(
+
+        # Use datetime objects instead of strings
+
+        start_time = datetime.now()
+        end_time = start_time + timedelta(seconds=1)
+
+        time_entry = client.time_entries.create(
+            start=start_time,
+            end=end_time,
             description="Test Time Entry",
             project_id=self.project_id,
             task_id=self.task_id,
@@ -134,5 +143,35 @@ class TestClockify(TestCase):
         """Test stopping a timer"""
         client = Clockify(self.api_key)
         client.time_entries.workspace_id = self.workspace_id
-        time_entry = client.stop_timer()
+
+        # Mock a running time entry
+        self.mock_session.request.side_effect = None
+        mock_response = mock.Mock()
+        mock_response.status_code = 200
+        mock_response.ok = True
+        mock_response.json.return_value = [self.mock_running_time_entry]
+        self.mock_session.request.return_value = mock_response
+
+        # First get the running time entry
+        time_entries = client.time_entries.get_by_user_id(user_id=self.user_id)
+        running_entry = next(
+            (
+                entry
+                for entry in time_entries
+                if entry.get("timeInterval", {}).get("end") is None
+            ),
+            None,
+        )
+        self.assertIsNotNone(running_entry)
+
+        # Reset mock for update call
+        mock_response.json.return_value = self.mock_time_entry
+
+        end_time = datetime.now()
+
+        # Then stop it
+        time_entry = client.time_entries.update(
+            running_entry["id"],
+            end=end_time,
+        )
         self.assertEqual(time_entry, self.mock_time_entry)
