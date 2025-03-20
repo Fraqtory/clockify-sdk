@@ -10,6 +10,7 @@ class Config:
 
     _api_key: str = ""
     BASE_URL: str = "https://api.clockify.me/api/v1"
+    REPORTS_URL: str = "https://reports.api.clockify.me/v1"
 
     # Default settings
     DEFAULT_TIMEOUT = 30  # seconds

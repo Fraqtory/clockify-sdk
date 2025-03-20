@@ -33,6 +33,7 @@ Then use the SDK:
 from dotenv import load_dotenv
 import os
 from clockify_sdk import Clockify
+from datetime import datetime
 
 # Load environment variables from .env file
 load_dotenv()
@@ -47,25 +48,28 @@ client = Clockify(
 workspaces = client.get_workspaces()
 
 # Create a new time entry
-time_entry = client.time_entries.create(
-    project_id="project-id",
+start_time = datetime.now(timezone.utc)
+end_time = datetime.fromisoformat("2024-03-17T11:00:00+00:00")
+time_entry = client.time_entries.add_time_entry(
+    start=start_time,
+    end=end_time,
     description="Working on feature X",
-    start_time="2024-03-17T10:00:00Z",
-    end_time="2024-03-17T11:00:00Z"
+    project_id="project-id"
 )
 
 # Get all projects
 projects = client.projects.get_all()
 
 # Create a new project
-project = client.projects.create(
-    name="New Project",
-    client_id="client-id",
-    is_public=True
-)
+project = client.projects.create({
+    "name": "New Project",
+    "clientId": "client-id",
+    "isPublic": True
+})
 
 # Get time entries for a specific date range
 time_entries = client.time_entries.get_all(
+    user_id=client.user_id,
     start_date="2024-03-01",
     end_date="2024-03-17"
 )
@@ -84,24 +88,23 @@ report = client.reports.generate(
 
 ```python
 # Create a new task
-task = client.tasks.create(
-    project_id="project-id",
-    name="Implement new feature",
-    assignee_id="user-id"
-)
+task = client.tasks.create({
+    "name": "Implement new feature",
+    "assigneeId": "user-id"
+}, project_id="project-id")
 
 # Get all tasks for a project
-tasks = client.tasks.get_by_project(project_id="project-id")
+tasks = client.tasks.get_all(project_id="project-id")
 ```
 
 ### Managing Clients
 
 ```python
 # Create a new client
-client = client.clients.create(
-    name="New Client",
-    note="Important client"
-)
+new_client = client.clients.create({
+    "name": "New Client",
+    "note": "Important client"
+})
 
 # Get all clients
 clients = client.clients.get_all()
@@ -111,10 +114,10 @@ clients = client.clients.get_all()
 
 ```python
 # Get current user information
-current_user = client.user_manager.get_current_user()
+current_user = client.users.get_current_user()
 
 # Get all users in workspace
-users = client.user_manager.get_all()
+users = client.users.get_all()
 ```
 
 ## Error Handling
@@ -125,10 +128,10 @@ The SDK provides clear error messages and exceptions:
 from clockify_sdk.exceptions import ClockifyError
 
 try:
-    client.time_entries.create(
-        project_id="invalid-id",
-        description="Test entry"
-    )
+    client.time_entries.create({
+        "projectId": "invalid-id",
+        "description": "Test entry"
+    })
 except ClockifyError as e:
     print(f"Error: {e.message}")
 ```

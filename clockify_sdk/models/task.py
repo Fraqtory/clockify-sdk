@@ -2,7 +2,7 @@
 Task model for the Clockify SDK
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import Field
 
@@ -22,7 +22,7 @@ class Task(ClockifyBaseModel):
     estimate: Optional[str] = Field(
         None, description="Estimated duration in ISO 8601 format"
     )
-    status: str = Field(..., description="Task status")
+    status: Literal["ACTIVE", "ALL", "DONE"] = Field(..., description="Task status")
     is_active: bool = Field(True, description="Whether the task is active")
     custom_fields: List[Dict[str, Any]] = Field(
         default_factory=list, description="Custom fields"
@@ -32,11 +32,10 @@ class Task(ClockifyBaseModel):
 class TaskManager(ApiClientBase[Dict[str, Any], List[Dict[str, Any]]]):
     """Manager for task-related operations."""
 
-    def get_all(self, workspace_id: str, project_id: str) -> List[Dict[str, Any]]:
+    def get_all(self, project_id: str) -> List[Dict[str, Any]]:
         """Get all tasks in a project.
 
         Args:
-            workspace_id: ID of the workspace
             project_id: ID of the project
 
         Returns:
@@ -44,17 +43,14 @@ class TaskManager(ApiClientBase[Dict[str, Any], List[Dict[str, Any]]]):
         """
         return self._request(
             "GET",
-            f"workspaces/{workspace_id}/projects/{project_id}/tasks",
+            f"workspaces/{self.workspace_id}/projects/{project_id}/tasks",
             response_type=List[Dict[str, Any]],
         )
 
-    def get_by_id(
-        self, workspace_id: str, project_id: str, task_id: str
-    ) -> Dict[str, Any]:
+    def get_by_id(self, project_id: str, task_id: str) -> Dict[str, Any]:
         """Get a specific task by ID.
 
         Args:
-            workspace_id: ID of the workspace
             project_id: ID of the project
             task_id: ID of the task
 
@@ -63,111 +59,115 @@ class TaskManager(ApiClientBase[Dict[str, Any], List[Dict[str, Any]]]):
         """
         return self._request(
             "GET",
-            f"workspaces/{workspace_id}/projects/{project_id}/tasks/{task_id}",
+            f"workspaces/{self.workspace_id}/projects/{project_id}/tasks/{task_id}",
             response_type=Dict[str, Any],
         )
 
     def create(
-        self, workspace_id: str, project_id: str, task: Dict[str, Any]
+        self,
+        project_id: str,
+        name: str,
+        estimate: Optional[str] = None,
+        status: Literal["ACTIVE", "ALL", "DONE"] = "ACTIVE",
+        assignee_ids: Optional[List[str]] = None,
+        user_group_ids: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """Create a new task.
 
         Args:
-            workspace_id: ID of the workspace
             project_id: ID of the project
-            task: Task data
+            name: Task name
+            estimate: Estimated duration in ISO 8601 format
+            status: Task status
+            assignee_ids: List of assignee IDs
+            user_group_ids: List of user group IDs
 
         Returns:
             Created task information
         """
         return self._request(
             "POST",
-            f"workspaces/{workspace_id}/projects/{project_id}/tasks",
-            json=task,
+            f"workspaces/{self.workspace_id}/projects/{project_id}/tasks",
+            json={
+                "name": name,
+                "estimate": estimate,
+                "status": status,
+                "assigneeIds": assignee_ids,
+                "userGroupIds": user_group_ids,
+            },
             response_type=Dict[str, Any],
         )
 
     def update(
-        self, workspace_id: str, project_id: str, task_id: str, task: Dict[str, Any]
+        self,
+        project_id: str,
+        task_id: str,
+        name: Optional[str] = None,
+        estimate: Optional[str] = None,
+        status: Literal["ACTIVE", "ALL", "DONE"] = "ACTIVE",
+        assignee_ids: Optional[List[str]] = None,
+        user_group_ids: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """Update an existing task.
 
         Args:
-            workspace_id: ID of the workspace
             project_id: ID of the project
             task_id: ID of the task
-            task: Updated task data
+            name: Task name
+            estimate: Estimated duration in ISO 8601 format
+            status: Task status
+            assignee_ids: List of assignee IDs
+            user_group_ids: List of user group IDs
 
         Returns:
             Updated task information
         """
         return self._request(
             "PUT",
-            f"workspaces/{workspace_id}/projects/{project_id}/tasks/{task_id}",
-            json=task,
+            f"workspaces/{self.workspace_id}/projects/{project_id}/tasks/{task_id}",
+            json={
+                "name": name,
+                "estimate": estimate,
+                "status": status,
+                "assigneeIds": assignee_ids,
+                "userGroupIds": user_group_ids,
+            },
             response_type=Dict[str, Any],
         )
 
-    def delete(self, workspace_id: str, project_id: str, task_id: str) -> None:
+    def delete(self, project_id: str, task_id: str) -> None:
         """Delete a task.
 
         Args:
-            workspace_id: ID of the workspace
             project_id: ID of the project
             task_id: ID of the task
         """
         self._request(
             "DELETE",
-            f"workspaces/{workspace_id}/projects/{project_id}/tasks/{task_id}",
+            f"workspaces/{self.workspace_id}/projects/{project_id}/tasks/{task_id}",
             response_type=Dict[str, Any],
         )
 
-    def bulk_create(
-        self, workspace_id: str, project_id: str, tasks: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
-        """Create multiple tasks at once.
-
-        Args:
-            workspace_id: ID of the workspace
-            project_id: ID of the project
-            tasks: List of task data
-
-        Returns:
-            List of created task information
-        """
-        return self._request(
-            "POST",
-            f"workspaces/{workspace_id}/projects/{project_id}/tasks/bulk",
-            json={"tasks": tasks},
-            response_type=List[Dict[str, Any]],
-        )
-
-    def mark_task_done(
-        self, workspace_id: str, project_id: str, task_id: str
-    ) -> Dict[str, Any]:
+    def mark_task_done(self, project_id: str, task_id: str) -> Dict[str, Any]:
         """Mark a task as done.
 
         Args:
-            workspace_id: ID of the workspace
             project_id: ID of the project
             task_id: ID of the task
 
         Returns:
             Updated task information
         """
-        return self.update(workspace_id, project_id, task_id, {"status": "DONE"})
+        return self.update(project_id, task_id, status="DONE")
 
-    def mark_task_active(
-        self, workspace_id: str, project_id: str, task_id: str
-    ) -> Dict[str, Any]:
+    def mark_task_active(self, project_id: str, task_id: str) -> Dict[str, Any]:
         """Mark a task as active.
 
         Args:
-            workspace_id: ID of the workspace
             project_id: ID of the project
             task_id: ID of the task
 
         Returns:
             Updated task information
         """
-        return self.update(workspace_id, project_id, task_id, {"status": "ACTIVE"})
+        return self.update(project_id, task_id, status="ACTIVE")

@@ -30,26 +30,22 @@ class Client(ClockifyBaseModel):
 class ClientManager(ApiClientBase[Dict[str, Any], List[Dict[str, Any]]]):
     """Manager for client-related operations."""
 
-    def get_all(self, workspace_id: str) -> List[Dict[str, Any]]:
-        """Get all clients in a workspace.
-
-        Args:
-            workspace_id: ID of the workspace
+    def get_all(self) -> List[Dict[str, Any]]:
+        """Get all clients in the workspace.
 
         Returns:
             List of clients
         """
         return self._request(
             "GET",
-            f"workspaces/{workspace_id}/clients",
+            f"workspaces/{self.workspace_id}/clients",
             response_type=List[Dict[str, Any]],
         )
 
-    def get_by_id(self, workspace_id: str, client_id: str) -> Dict[str, Any]:
+    def get_by_id(self, client_id: str) -> Dict[str, Any]:
         """Get a specific client by ID.
 
         Args:
-            workspace_id: ID of the workspace
             client_id: ID of the client
 
         Returns:
@@ -57,56 +53,71 @@ class ClientManager(ApiClientBase[Dict[str, Any], List[Dict[str, Any]]]):
         """
         return self._request(
             "GET",
-            f"workspaces/{workspace_id}/clients/{client_id}",
+            f"workspaces/{self.workspace_id}/clients/{client_id}",
             response_type=Dict[str, Any],
         )
 
-    def create(self, workspace_id: str, client: Dict[str, Any]) -> Dict[str, Any]:
+    def create(
+        self,
+        name: str,
+        email: Optional[str] = None,
+        address: Optional[str] = None,
+        note: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """Create a new client.
 
         Args:
-            workspace_id: ID of the workspace
-            client: Client data
+            name: Client name
+            email: Client email
+            address: Client address
+            note: Client note
 
         Returns:
             Created client information
         """
+
         return self._request(
             "POST",
-            f"workspaces/{workspace_id}/clients",
-            json=client,
+            f"workspaces/{self.workspace_id}/clients",
+            json={"name": name, "email": email, "address": address, "note": note},
             response_type=Dict[str, Any],
         )
 
     def update(
-        self, workspace_id: str, client_id: str, client: Dict[str, Any]
+        self,
+        client_id: str,
+        name: Optional[str] = None,
+        email: Optional[str] = None,
+        address: Optional[str] = None,
+        note: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Update an existing client.
 
         Args:
-            workspace_id: ID of the workspace
             client_id: ID of the client
-            client: Updated client data
+            name: Client name
+            email: Client email
+            address: Client address
+            note: Client note
 
         Returns:
             Updated client information
         """
         return self._request(
             "PUT",
-            f"workspaces/{workspace_id}/clients/{client_id}",
-            json=client,
+            f"workspaces/{self.workspace_id}/clients/{client_id}",
+            json={"name": name, "email": email, "address": address, "note": note},
             response_type=Dict[str, Any],
         )
 
-    def delete(self, workspace_id: str, client_id: str) -> None:
+    def delete(self, client_id: str) -> None:
         """Delete a client.
 
         Args:
-            workspace_id: ID of the workspace
             client_id: ID of the client
         """
         self._request(
             "DELETE",
-            f"workspaces/{workspace_id}/clients/{client_id}",
+            f"workspaces/{self.workspace_id}/clients/{client_id}",
             response_type=Dict[str, Any],
         )

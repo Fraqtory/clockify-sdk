@@ -37,26 +37,22 @@ class UserManager(ApiClientBase[Dict[str, Any], List[Dict[str, Any]]]):
         """
         return self._request("GET", "user", response_type=Dict[str, Any])
 
-    def get_all(self, workspace_id: str) -> List[Dict[str, Any]]:
+    def get_all(self) -> List[Dict[str, Any]]:
         """Get all users in a workspace.
-
-        Args:
-            workspace_id: ID of the workspace
 
         Returns:
             List of users in the workspace
         """
         return self._request(
             "GET",
-            f"workspaces/{workspace_id}/users",
+            f"workspaces/{self.workspace_id}/users",
             response_type=List[Dict[str, Any]],
         )
 
-    def get_by_id(self, workspace_id: str, user_id: str) -> Dict[str, Any]:
+    def get_by_id(self, user_id: str) -> Dict[str, Any]:
         """Get a specific user by ID.
 
         Args:
-            workspace_id: ID of the workspace
             user_id: ID of the user
 
         Returns:
@@ -64,19 +60,16 @@ class UserManager(ApiClientBase[Dict[str, Any], List[Dict[str, Any]]]):
         """
         return self._request(
             "GET",
-            f"workspaces/{workspace_id}/users/{user_id}",
+            f"workspaces/{self.workspace_id}/users/{user_id}",
             response_type=Dict[str, Any],
         )
 
-    def set_active_workspace(self, workspace_id: str) -> Dict[str, Any]:
+    def set_active_workspace(self) -> Dict[str, Any]:
         """Set the active workspace for the current user.
-
-        Args:
-            workspace_id: ID of the workspace
 
         Returns:
             Updated user information
         """
         return self._request(
-            "PUT", f"users/workspaces/{workspace_id}", response_type=Dict[str, Any]
+            "PUT", f"users/workspaces/{self.workspace_id}", response_type=Dict[str, Any]
         )

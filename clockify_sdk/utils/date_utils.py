@@ -39,5 +39,7 @@ def format_datetime(dt: datetime) -> str:
         ISO 8601 formatted string with UTC timezone
     """
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc).isoformat()
+        dt = dt.replace(tzinfo=timezone.utc)  # Set timezone to UTC if naive
+    else:
+        dt = dt.astimezone(timezone.utc)  # Convert to UTC if already timezone-aware
+    return dt.isoformat().replace("+00:00", "Z")
