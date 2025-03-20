@@ -8,7 +8,6 @@ A Python SDK for interacting with the Clockify API. This SDK provides a simple a
 - 📊 Manage time entries
 - 📁 Handle projects and tasks
 - 👥 Manage clients and users
-- 📈 Generate reports
 - 🔄 Workspace management
 - ✨ Type hints for better IDE support
 
