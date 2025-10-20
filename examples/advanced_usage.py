@@ -285,20 +285,21 @@ def main():
             return
 
         # Analyze the first project
-        project_id = projects[0].get("id")
-        if project_id:
-            logger.info("\n=== Project Analysis ===")
-            project_stats = analytics.get_project_stats(project_id)
-            logger.info(f"Project stats: {project_stats}")
-        # Get team productivity
-        logger.info("\n=== Team Productivity ===")
-        team_stats = analytics.get_team_productivity()
-        logger.info(f"Team stats: {team_stats}")
+        for project in projects:
+            project_id = project.get("id")
+            if project_id:
+                logger.info("\n=== Project Analysis ===")
+                project_stats = analytics.get_project_stats(project_id)
+                logger.info(f"Project stats: {project_stats}")
+            # Get team productivity
+            logger.info("\n=== Team Productivity ===")
+            team_stats = analytics.get_team_productivity()
+            logger.info(f"Team stats: {team_stats}")
 
-        # Generate weekly report
-        logger.info("\n=== Weekly Report ===")
-        weekly_report = analytics.generate_weekly_report()
-        logger.info(f"Weekly report: {weekly_report}")
+            # Generate weekly report
+            logger.info("\n=== Weekly Report ===")
+            weekly_report = analytics.generate_weekly_report()
+            logger.info(f"Weekly report: {weekly_report}")
 
     except ClockifyError as e:
         logger.error(f"Clockify API error: {e}")

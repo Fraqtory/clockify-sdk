@@ -9,6 +9,8 @@ A Python SDK for interacting with the Clockify API. This SDK provides a simple a
 - 📁 Handle projects and tasks
 - 👥 Manage clients and users
 - 🔄 Workspace management
+- 📈 Advanced reporting with minimum hours tracking
+- 🔴 Visual alerts for developers not meeting minimum hours
 - ✨ Type hints for better IDE support
 
 ## Installation
@@ -119,6 +121,46 @@ current_user = client.users.get_current_user()
 users = client.users.get_all()
 ```
 
+### Minimum Hours Tracking
+
+The SDK includes advanced reporting features with minimum hours tracking:
+
+```python
+# Create a developer_minimums.json file with your team's requirements
+{
+  "user_id_1": {
+    "name": "John Doe",
+    "minimum_weekly_hours": 40
+  },
+  "user_id_2": {
+    "name": "Jane Smith",
+    "minimum_weekly_hours": 35
+  }
+}
+
+# Use the project detail reporter with minimum hours tracking
+from examples.project_detail import ProjectDetailReporter
+
+reporter = ProjectDetailReporter(api_key, workspace_id)
+reporter.run()  # Interactive interface with 🔴 alerts for non-compliant developers
+```
+
+**Getting User IDs for Configuration:**
+
+```bash
+# List all users in your Clockify workspace to get their IDs
+python examples/minimum_hours_example.py --list-users
+
+# Or run the interactive example
+python examples/minimum_hours_example.py
+```
+
+The system automatically:
+
+- Shows 🔴 emoji prefix for developers not meeting their minimum hours
+- Calculates expected minimums for monthly reports based on number of weeks
+- Pro-rates minimums for partial periods (current week, this month)
+
 ## Error Handling
 
 The SDK provides clear error messages and exceptions:
@@ -138,33 +180,39 @@ except ClockifyError as e:
 ## Development
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/fraqtory/clockify-sdk.git
 cd clockify-sdk
 ```
 
 2. Create and activate a virtual environment:
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # On Windows, use `.venv\Scripts\activate`
 ```
 
 3. Install development dependencies:
+
 ```bash
 pip install -e ".[dev]"
 ```
 
 4. Run tests:
+
 ```bash
 pytest
 ```
 
 5. Run type checking:
+
 ```bash
 mypy clockify_sdk
 ```
 
 6. Run linting:
+
 ```bash
 ruff check .
 black .

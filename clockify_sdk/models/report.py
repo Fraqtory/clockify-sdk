@@ -114,7 +114,7 @@ class ReportManager(ApiClientBase[Dict[str, Any], List[Dict[str, Any]]]):
         end: datetime,
         user_ids: Optional[List[str]] = None,
         project_ids: Optional[List[str]] = None,
-        page_size: int = 50,
+        page_size: int = 100,
         page: int = 1,
     ) -> Dict[str, Any]:
         """Get detailed report data.
@@ -140,13 +140,15 @@ class ReportManager(ApiClientBase[Dict[str, Any], List[Dict[str, Any]]]):
                 "sortColumn": "DATE",
             },
             "exportType": "JSON",
+            "projects": {
+                "ids": project_ids
+            }
         }
 
         if user_ids:
             data["userIds"] = user_ids
 
-        if project_ids:
-            data["projectIds"] = project_ids
+        print("Loading ...")
 
         return self._request(
             "POST",
@@ -155,3 +157,137 @@ class ReportManager(ApiClientBase[Dict[str, Any], List[Dict[str, Any]]]):
             response_type=Dict[str, Any],
             is_reports=True,
         )
+
+    def get_detailed_all_pages(
+        self,
+        start: datetime,
+        end: datetime,
+        user_ids: Optional[List[str]] = None,
+        project_ids: Optional[List[str]] = None,
+        page_size: int = 1000,
+    ) -> List[Dict[str, Any]]:
+        """Get all detailed report data across all pages.
+        
+        This method automatically handles pagination to fetch all time entries
+        for the given date range, which is essential for accurate monthly reports.
+
+        Args:
+            start: Start date
+            end: End date
+            user_ids: Optional list of user IDs to filter by
+            project_ids: Optional list of project IDs to filter by
+            page_size: Number of results per page (max 1000)
+
+        Returns:
+            List of all time entries across all pages
+        """
+        all_time_entries = []
+        page = 1
+        
+        while True:
+            try:
+                report_data = self.get_detailed(
+                    start=start,
+                    end=end,
+                    user_ids=user_ids,
+                    project_ids=project_ids,
+                    page_size=page_size,
+                    page=page
+                )
+                
+                time_entries = report_data.get('timeentries', [])
+                if not time_entries:
+                    break
+                    
+                all_time_entries.extend(time_entries)
+                
+                # If we got fewer entries than page_size, we've reached the end
+                if len(time_entries) < page_size:
+                    break
+                    
+                page += 1
+                
+            except Exception as e:
+                # Log the error but don't fail completely
+                print(f"Warning: Error fetching page {page}: {e}")
+                break
+                
+        return all_time_entries
+
+    def get_monthly_report_data(
+        self,
+        project_id: str,
+        year: int,
+        month: int,
+    ) -> Dict[str, Any]:
+        """Get complete monthly report data for a specific project and month.
+        
+        This method provides a convenient way to get all time entries for a
+        specific month, handling pagination automatically.
+
+        Args:
+            project_id: ID of the project
+            year: Year (e.g., 2024)
+            month: Month (1-12)
+
+        Returns:
+            Dictionary containing all time entries and metadata for the month
+        """
+        from ..utils.date_utils import get_month_range
+        
+        # Get the first and last day of the month
+        first_day, last_day = get_month_range(year, month)
+        
+        # Get all time entries for the month
+        time_entries = self.get_detailed_all_pages(
+            start=first_day,
+            end=last_day,
+            project_ids=[project_id]
+        )
+        
+        return {
+            'timeentries': time_entries,
+            'start_date': first_day,
+            'end_date': last_day,
+            'project_id': project_id,
+            'total_entries': len(time_entries)
+        }
+
+    def get_weekly_report_data(
+        self,
+        project_id: str,
+        year: int,
+        week: int,
+    ) -> Dict[str, Any]:
+        """Get complete weekly report data for a specific project and week.
+        
+        This method provides a convenient way to get all time entries for a
+        specific week, handling pagination automatically.
+
+        Args:
+            project_id: ID of the project
+            year: Year (e.g., 2024)
+            week: Week number (1-53)
+
+        Returns:
+            Dictionary containing all time entries and metadata for the week
+        """
+        from ..utils.date_utils import get_week_range
+        
+        # Get the start and end of the specified week
+        week_start, week_end = get_week_range(year, week)
+        
+        # Get all time entries for the week
+        time_entries = self.get_detailed_all_pages(
+            start=week_start,
+            end=week_end,
+            project_ids=[project_id]
+        )
+        
+        return {
+            'timeentries': time_entries,
+            'start_date': week_start,
+            'end_date': week_end,
+            'project_id': project_id,
+            'total_entries': len(time_entries)
+        }

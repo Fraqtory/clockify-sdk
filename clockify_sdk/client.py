@@ -84,6 +84,56 @@ class Clockify:
         )
         return cast("List[Dict[str, Any]]", response)
 
+    def get_last_month_report(self, project_id: str) -> Dict[str, Any]:
+        """Get complete report data for the last month.
+        
+        This is a convenience method that automatically handles pagination
+        and date range calculation for the previous month.
+        
+        Args:
+            project_id: ID of the project
+            
+        Returns:
+            Dictionary containing all time entries and metadata for the last month
+        """
+        from datetime import datetime
+        current_date = datetime.now()
+        return self.reports.get_monthly_report_data(
+            project_id=project_id,
+            year=current_date.year if current_date.month > 1 else current_date.year - 1,
+            month=current_date.month - 1 if current_date.month > 1 else 12
+        )
+
+    def get_last_week_report(self, project_id: str) -> Dict[str, Any]:
+        """Get complete report data for the last week.
+        
+        This is a convenience method that automatically handles pagination
+        and date range calculation for the previous week.
+        
+        Args:
+            project_id: ID of the project
+            
+        Returns:
+            Dictionary containing all time entries and metadata for the last week
+        """
+        from datetime import datetime
+        from ..utils.date_utils import get_last_week_range
+        
+        start_date, end_date = get_last_week_range()
+        time_entries = self.reports.get_detailed_all_pages(
+            start=start_date,
+            end=end_date,
+            project_ids=[project_id]
+        )
+        
+        return {
+            'timeentries': time_entries,
+            'start_date': start_date,
+            'end_date': end_date,
+            'project_id': project_id,
+            'total_entries': len(time_entries)
+        }
+
     def close(self) -> None:
         """Close all connections."""
         self._connection.close()
